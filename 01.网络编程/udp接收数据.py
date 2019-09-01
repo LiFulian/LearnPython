@@ -18,7 +18,7 @@ def main():
         
         # 4. 打印接收到的数据
         # print(recv_data)
-        print("%s:%s"%(str(send_addr), recv_msg.decode("utf-8")))
+        print("%s:%s"%(str(send_addr), recv_msg.decode("gbk")))
     # 5.关闭套接字
     udp_socket.close()
 if __name__ == "__main__":
