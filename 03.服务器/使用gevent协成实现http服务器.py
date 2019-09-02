@@ -1,5 +1,8 @@
 import socket
-import multiprocessing
+import gevent
+from gevent import monkey
+monkey.patch_all()
+
 # 由于tcp有３次握手４次挥手，当本服务器关闭重启时会显示地址已占用（约两分钟）
 # 加上一行代码可解决
 
@@ -41,10 +44,9 @@ def main():
         new_socket, client_addr = tcp_server_socket.accept()
 
         # 5. 为这个客户端服务
-        p = multiprocessing.Process(target=service_client, args=(new_socket,))
-        p.start()
+        gevent.spawn(service_client, new_socket,)
 
-        new_socket.close()  # 关闭父线程的这个套接字，（子线程中以服务）
+        # new_socket.close()  # 多线程是共享,协程也是共享，不能关闭父ｓｏｃｋｅｔ
 
     # 关闭监听套接字
     tcp_server_socket.close()

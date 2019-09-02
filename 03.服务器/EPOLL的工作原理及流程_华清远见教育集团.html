@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<!-- saved from url=(0040)http://emb.hqyj.com/Column/20181660.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=GBK">
+
+<title>EPOLL的工作原理及流程_华清远见教育集团</title>
+<meta name="keywords" content="EPOLL，EPOLL工作原理，EPOLL流程">
+<meta name="description" content="一.Epoll是什么? epoll是个什么东东呢?按照man手册的说法：是为处理大批量句柄而作了改进的poll。当然，这不是2.6内核才有的，它是在2.5.44内核中被引进的(epoll(4) is a new API introduced in Linux kernel 2.5.44)，它几乎具备了之前所说的一切优点，被公">
+<link rel="stylesheet" href="./EPOLL的工作原理及流程_华清远见教育集团_files/public.css">
+<link rel="stylesheet" href="./EPOLL的工作原理及流程_华清远见教育集团_files/article.css">
+<link rel="stylesheet" href="./EPOLL的工作原理及流程_华清远见教育集团_files/article.min.css">
+<script src="./EPOLL的工作原理及流程_华清远见教育集团_files/hm.js"></script><script type="text/javascript" src="./EPOLL的工作原理及流程_华清远见教育集团_files/jquery-1.11.0.min.js"></script>
+<script type="text/javascript" src="./EPOLL的工作原理及流程_华清远见教育集团_files/special.js"></script>
+<script> 
+var url=window.location.href;
+var url=url.replace("http://www.", "http://");
+var url=url.replace("http://", "http://m.");
+var sUserAgent = navigator.userAgent.toLowerCase(); 
+var bIsIpad = sUserAgent.match(/ipad/i) == "ipad"; 
+var bIsIphoneOs = sUserAgent.match(/iphone os/i) == "iphone os"; 
+var bIsMidp = sUserAgent.match(/midp/i) == "midp"; 
+var bIsUc7 = sUserAgent.match(/rv:1.2.3.4/i) == "rv:1.2.3.4"; 
+var bIsUc = sUserAgent.match(/ucweb/i) == "ucweb"; 
+var bIsAndroid = sUserAgent.match(/android/i) == "android"; 
+var bIsCE = sUserAgent.match(/windows ce/i) == "windows ce"; 
+var bIsWM = sUserAgent.match(/windows mobile/i) == "windows mobile"; 
+
+if (bIsIpad || bIsIphoneOs || bIsMidp || bIsUc7 || bIsUc || bIsAndroid || bIsCE || bIsWM) {window.location.href=url;}
+else{}
+</script>
+<link rel="stylesheet" href="./EPOLL的工作原理及流程_华清远见教育集团_files/layer.css" id="layui_layer_skinlayercss" style=""></head>
+
+<body style="">
+<!--header-->
+
+<!--导航top开始-->
+<!--header-->
+<header class="header_title">
+	<div class="div_center">
+		<div class="header_left">
+			<p class="header_jituan"><a style="color:#999;">欢迎来到嵌入式培训专家——华清远见嵌入式学院</a></p>
+			<!--<div class='search'>
+			  <form  name='formsearch' action='http://www.fsdev.com.cn/plus/search.php'>
+				<input type='hidden' name='kwtype' value='0' />
+				<input name='q' type='text' class='search-input' id='search-keyword' placeholder='请搜索您要查找的内容' >
+				<select name='channeltype' id='channeltype' style='display:none;' >
+				<option value='6' selected>商品</option>
+				  </select>
+				<button type='submit' class='search-btn'> <img src='emb2019/images/search.png'> </button>
+			  </form>
+			</div>-->
+			
+
+			<!--add-->
+			<ul class="header_link">
+			<li class="liFirst pinpai"><a style="color:#fff;">华清子品牌</a><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/down_wri.png" alt="华清远见官网" width="8" height="4" class="down">
+			<div class="dh_menu hea_menu" style="height: 0px; opacity: 0;">
+			<a href="http://www.hqyj.com/" title="" target="_blank"><p>集团官网</p></a>
+			<a href="http://www.makeru.com.cn/" title="" target="_blank"><p>创客学院</p></a>
+			<a href="http://www.fsdev.com.cn/" title="" target="_blank"><p>研发中心</p></a>
+			</div>
+			</li>
+			<li class="liFirst"><a href="http://www.hqyj.com/chaxun/" target="_blank">学员信息查询</a></li>
+			<li class="liFirst"><a href="http://www.hqyj.com/chaxun/" target="_blank">报名入口</a></li>
+			</ul>
+			<!--end-->
+		</div>
+    </div>
+</header>
+<!--导航top结束-->
+
+<!--导航开始-->
+<div class="div_center">
+<!--nav-->
+<nav class="nav_title">
+	<div class="div_center">
+    	<div class="nav_logo" style="width:270px;">
+        	<a href="http://www.hqyj.com/" target="_blank"><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/logo.png" alt="华清远见" width="138" height="43"></a>
+			<em></em>
+				<ul class="footer-select" style="width:80px;">
+					<li class="liFirst hq"><a>嵌入式学院<br><span>[ 切换城市 ]</span></a>
+					<div class="dh_menu hq_menu" style="height: 0px; opacity: 0;">
+						<a href="http://bj.hqyj.com/" title="" target="_blank"><p>北京</p></a>
+						<a href="http://sh.hqyj.com/" title="" target="_blank"><p>上海</p></a>
+						<a href="http://sz.hqyj.com/" title="" target="_blank"><p>深圳</p></a>
+						<a href="http://cd.hqyj.com/" title="" target="_blank"><p>成都</p></a>
+						<a href="http://nj.hqyj.com/" title="" target="_blank"><p>南京</p></a>
+						<a href="http://xa.hqyj.com/" title="" target="_blank"><p>西安</p></a>
+						<a href="http://wh.hqyj.com/" title="" target="_blank"><p>武汉</p></a>
+						<a href="http://gz.hqyj.com/" title="" target="_blank"><p>广州</p></a>
+						<a href="http://sy.hqyj.com/" title="" target="_blank"><p>沈阳</p></a>
+						<a href="http://jn.hqyj.com/" title="" target="_blank"><p>济南</p></a>
+						<a href="http://cq.hqyj.com/" title="" target="_blank"><p>重庆</p></a>
+						<a href="http://cs.hqyj.com/" title="" target="_blank"><p>长沙</p></a>
+						<div style="clear:both"></div>
+						<div class="hq_phone"><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/chengiphone.png"><span>全国统一咨询热线：400-611-6270</span></div>
+					</div>
+					</li>
+				</ul>
+		</div>
+         <ul class="nav_right1">
+        	<li><a href="http://emb.hqyj.com/" title="">首页</a></li>
+			<li class="liFirst"><a href="http://emb.hqyj.com/courses/" title="" target="_blank" class="">培训课程</a>
+				<img src="./EPOLL的工作原理及流程_华清远见教育集团_files/down.png" alt="华清远见IT培训课程" width="8" height="4" class="down">
+				<div class="dh_menu farsi-a" style="height: 0px; opacity: 0; display: none;">
+					<a href="http://emb.hqyj.com/courses/embai.html" target="_blank" class=""><p class="fz14 cor03">嵌入式AI就业班</p></a>
+					<a href="http://superedu.hqyj.com/" target="_blank" class=""><p class="fz14 cor03">星创客精英班</p></a>
+				</div>
+			</li>
+			<li class="liFirst"><a href="http://emb.hqyj.com/VideoCourse/" title="" target="_blank">视频教程</a>
+				<img src="./EPOLL的工作原理及流程_华清远见教育集团_files/down.png" alt="华清远见IT培训课程" width="8" height="4" class="down">
+				<div class="dh_menu farsi-b" style="height: 0px; opacity: 0;">
+					<a href="http://emb.hqyj.com/VideoCourse/" target="_blank"><p class="fz14 cor03">嵌入式视频教程</p></a>
+					<a href="http://emb.hqyj.com/VideoCourse/C/" target="_blank"><p class="fz14 cor03">C语言视频教程</p></a>
+					<a href="http://emb.hqyj.com/VideoCourse/linux/" target="_blank"><p class="fz14 cor03">Linux视频教程</p></a>
+					<a href="http://emb.hqyj.com/VideoCourse/arm/kaifa.html" target="_blank"><p class="fz14 cor03">ARM视频教程</p></a>
+				</div>
+			</li>
+            <li><a href="http://emb.hqyj.com/teachers/" target="_blank">师资团队</a></li>
+            <li><a href="http://www.hqyj.com/jiuye/" title="" target="_blank" rel="nofollow">高薪就业</a></li>
+            <li class="liFirst"><a href="http://emb.hqyj.com/projects/" title="" target="_blank">实训项目</a>
+				<img src="./EPOLL的工作原理及流程_华清远见教育集团_files/down.png" alt="华清远见IT培训课程" width="8" height="4" class="down">
+				<div class="dh_menu farsi-c" style="height: 0px; opacity: 0;">
+					<div class="dh_menu_head01" style="width:130px;">
+						<em>智能硬件实训产品</em>
+					</div>
+					<ul>
+						<a href="http://emb.hqyj.com/projects/smart-car.html" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_m.jpg"><span class="fz14 cor03">智能小车</span></li></a>
+						<a href="http://emb.hqyj.com/projects/smart-agriculture.html" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_n.jpg"><span class="fz14 cor03">智能农业</span></li></a>
+						<a href="http://emb.hqyj.com/projects/vehicle-navigation.html" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_o.jpg"><span class="fz14 cor03">车载导航系统 </span></li></a>
+						<a href="http://emb.hqyj.com/projects/IOT.html" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_p.jpg"><span class="fz14 cor03">智能仓储</span></li></a>
+						<a href="http://emb.hqyj.com/projects/smart-watch.html" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_q.jpg"><span class="fz14 cor03">智能手表 </span></li></a>
+						<a href="http://emb.hqyj.com/projects/security.html" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_i.jpg"><span class="fz14 cor03">智能安防 </span></li></a>
+						<a href="http://emb.hqyj.com/projects/smart-home.html" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_s.jpg"><span class="fz14 cor03">智能家居+VR系统</span></li></a>
+						<a href="http://emb.hqyj.com/projects/smart-medical.html" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_t.jpg"><span class="fz14 cor03">智能医疗 </span></li></a>
+						<div class="clear"></div>
+						<a href="http://emb.hqyj.com/projects/Intelligent-transportation.html" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_u.jpg"><span class="fz14 cor03">智能交通 </span></li></a>
+						<a href="http://emb.hqyj.com/projects/pingban.html" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_v.jpg"><span class="fz14 cor03">Android开源平板  </span></li></a>
+					</ul>
+				</div>
+			</li>
+			
+			<li class="liFirst"><a href="http://emb.hqyj.com/Column/20181660.html" title="" target="_blank">教研实力</a>
+				<img src="./EPOLL的工作原理及流程_华清远见教育集团_files/down.png" alt="华清远见IT培训课程" width="8" height="4" class="down">
+				<div class="dh_menu farsi-d" style="height: 0px; opacity: 0;">
+					<a href="http://emb.hqyj.com/books/" target="_blank"><p class="fz14 cor03">原创图书</p></a>
+					<a href="http://emb.hqyj.com/yingshili/" target="_blank"><p class="fz14 cor03">研发硬实力</p></a>
+				</div>
+			</li>
+            <li class="liFirst"><a href="http://emb.hqyj.com/Column/20181660.html" title="" target="_blank">学习专区</a>
+				<img src="./EPOLL的工作原理及流程_华清远见教育集团_files/down.png" alt="华清远见IT培训课程" width="8" height="4" class="down">
+				<div class="dh_menu farsi-e" style="height: 0px; opacity: 0;">
+					
+					<ul class="dh_menu_ul_1">
+						<div class="dh_menu_head01">
+							<em>学习专区</em>
+						</div>
+						
+						<a href="http://emb.hqyj.com/xuexi/" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_a.png"><span class="fz14 cor03">嵌入式学习</span></li></a>
+						<a href="http://emb.hqyj.com/arm/" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_b.png"><span class="fz14 cor03">ARM学习</span></li></a>
+						<a href="http://emb.hqyj.com/linux/" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_c.png" style="width:16px;height:20px; margin-top:5px;"><span class="fz14 cor03">Linux学习</span></li></a>
+						<a href="http://emb.hqyj.com/Column/" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_d.png"><span class="fz14 cor03">讲师博文</span></li></a>
+						<a href="http://emb.hqyj.com/danpianji/" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_e.png"><span class="fz14 cor03">单片机学习</span></li></a>
+	<div class="clear"></div>					
+						<a href="http://emb.hqyj.com/C/" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_f.png"><span class="fz14 cor03">C语言学习 </span></li></a>
+						<span class="hold_font1"></span>
+						<div class="clear"></div>
+					</ul>
+					<ul class="dh_menu_ul02">
+						<div class="dh_menu_head01" style="margin-left:32px;">
+							<em>招聘专区</em>
+						</div>
+						
+						<a href="http://emb.hqyj.com/jobs/career/" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_g.png"><span class="fz14 cor03">求职技巧</span></li></a>
+						<a href="http://emb.hqyj.com/jobs/baodao/" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_h.png"><span class="fz14 cor03">招聘报道</span></li></a>
+						<a href="http://emb.hqyj.com/jobs/xinxi/" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_i.png"><span class="fz14 cor03">招聘信息</span></li></a>
+						<a href="http://emb.hqyj.com/jobs/mianshiti/" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_j.png"><span class="fz14 cor03">嵌入式面试题</span></li></a>
+						<span class="hold_font1"></span>
+						<div class="clear"></div>
+						
+					</ul>
+					<ul class="dh_menu_ul02">
+						<div class="dh_menu_head01" style="margin-left:32px;">
+							<em>问答专区</em>
+						</div>
+						
+						<a href="http://emb.hqyj.com/ask/" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_k.png"><span class="fz14 cor03">IT培训问题库</span></li></a>
+						<a href="http://emb.hqyj.com/qianrushi/" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_l.png"><span class="fz14 cor03">嵌入式软件开发工程师</span></li></a>
+						<a href="http://emb.hqyj.com/luxian/" target="_blank"><li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/emb_m.png"><span class="fz14 cor03">嵌入式学习路线</span></li></a>						
+						
+					</ul>
+					<div class="clear"></div>
+				</div>
+			</li>
+            <li class="liFirst"><a href="http://www.hqyj.com/aboutus/" title="" target="_blank">关于我们</a>
+				<img src="./EPOLL的工作原理及流程_华清远见教育集团_files/down.png" alt="华清远见在线编程课程" width="8" height="4" class="down">
+				<div class="dh_menu farsi-g01" style="height: 0px; opacity: 0;">
+					<a href="http://www.hqyj.com/aboutus/" target="_blank"><p class="fz14 cor03">关于我们</p></a>
+					<a href="http://www.hqyj.com/contactus/" target="_blank"><p class="fz14 cor03">联系我们</p></a>
+					<a href="http://www.hqyj.com/aboutus/join/" target="_blank"><p class="fz14 cor03">加入我们</p></a>
+					<a href="http://www.hqyj.com/aboutus/zcjy.html" target="_blank"><p class="fz14 cor03">总裁寄语</p></a>
+				</div>
+			</li>
+			<li><a href="http://bbs.hqyj.com/" title="" target="_blank">技术论坛</a></li>
+        </ul>
+    </div>
+</nav>
+</div>
+<!--导航结束-->
+
+ 
+	<div class="article_main">
+		<div class="div_center">
+			<div class="list_main_title">
+				<p class="fz14 cor03">当前位置：<a href="http://www.hqyj.com/">首页</a> &gt; <a href="http://emb.hqyj.com/">嵌入式培训</a> &gt; <a href="http://emb.hqyj.com/xuexi/">嵌入式学习</a> &gt; <a href="http://emb.hqyj.com/Column/">讲师博文</a> &gt;  EPOLL的工作原理及流程</p>
+			</div>
+			<div class="article_main_body">
+				<div class="article_main_left f_left">
+					<div class="article_main_left01">
+						<div class="article_main_top">
+							<img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_leftimg.png" class="img">
+							<span class="fz22 cor06 fw pdt80">EPOLL的工作原理及流程</span>
+							<span class="fz14 cor03 pdt30">时间：2018-05-14&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;来源：未知 </span>
+							<div class="article_main_tit">
+							<p>
+ 一.Epoll是什么?</p>
+<p>
+  epoll是个什么东东呢?按照man手册的说法：是为处理大批量句柄而作了改进的poll。当然，这不是2.6内核才有的，它是在2.5.44内核中被引进的(epoll(4) is a new API introduced in Linux kernel 2.5.44)，它几乎具备了之前所说的一切优点，被公认为Linux2.6下性能最好的多路I/O就绪通知方法。</p>
+<p>
+  二.epoll与poll和select对比</p>
+<p>
+  [1]select 的缺点：</p>
+<p>
+ 单个进程能够监视的文件描述符的数量存在最大限制，通常是1024，当然可以更改数量，但由于select采用轮询的方式扫描文件描述符，文件描述符数量越多，性能越差;(在linux内核头文件中，有这样的定义：#define __FD_SETSIZE 1024)</p>
+<p>
+  内核 / 用户空间内存拷贝问题，select需要复制大量的句柄数据结构，产生巨大的开销;</p>
+<p>
+ select返回的是含有整个句柄的数组，应用程序需要遍历整个数组才能发现哪些句柄发生了事件;</p>
+<p>
+ select中应用程序如果没有完成对一个已经就绪的文件描述符进行IO操作，那么之后每次select调用还是会将这些文件描述符通知进程。</p>
+<p>
+  相对于我们的select模型，我们的poll是使用链表保持文件描述符，因此没有了监视文件数量的限制，但是2，3，4等缺点依旧存在。</p>
+<p>
+  拿select模型为例，假设我们的服务器需要支持100万的并发连接，则在__FD_SETSIZE 为1024的情况下，则我们至少需要开辟1k个进程才能实现100万的并发连接。除了进程间上下文切换的时间消耗外，从内核/用户空间大量的无脑内存拷贝、数组轮询等，是系统难以承受的。因此，基于select模型的服务器程序，要达到10万级别的并发访问，是一个很难完成的任务。</p>
+<p>
+ 因此，该epoll上场了。</p>
+<p>
+  三.Epoll的工作原理</p>
+<p>
+ 设想一下如下场景：有100万个客户端同时与一个服务器进程保持着TCP连接。而每一时刻，通常只有几百上千个TCP连接是活跃的(事实上大部分场景都是这种情况)。如何实现这样的高并发?</p>
+<p>
+  在select/poll时代，服务器进程每次都把这100万个连接告诉操作系统(从用户态复制句柄数据结构到内核态)，让操作系统内核去查询这些套接字上是否有事件发生，轮询完后，再将句柄数据复制到用户态，让服务器应用程序轮询处理已发生的网络事件，这一过程资源消耗较大，因此，select/poll一般只能处理几千的并发连接。</p>
+<p>
+  epoll的设计和实现与select完全不同。epoll通过在Linux内核中申请一个简易的文件系统(文件系统一般用什么数据结构实现?二叉树树)。然后epoll的调用分成了3个部分：</p>
+<p>
+  1)调用epoll_create()建立一个epoll对象(在epoll文件系统中为这个句柄对象分配资源)</p>
+<p>
+  2)调用epoll_ctl向epoll对象中添加这100万个连接的套接字</p>
+<p>
+ 3)调用epoll_wait收集发生的事件的连接</p>
+<p>
+ 如此一来，要实现上面说是的场景，只需要在进程启动时建立一个epoll对象，然后在需要的时候向这个epoll对象中添加或者删除连接。同时，epoll_wait的效率也非常高，因为调用epoll_wait时，并没有一股脑的向操作系统复制这100万个连接的句柄数据，内核也不需要去遍历全部的连接。</p>
+<p>
+  具体流程：</p>
+<p>
+  [1]当我们某个进程调用epoll_create()函数的时候，linux内核会默认创建一个eventpoll结构体，这个结构体中有两个成员与epoll的使用方式相关。</p>
+<p style="text-align: center;">
+ <img alt="" src="./EPOLL的工作原理及流程_华清远见教育集团_files/2-1P514114H2328.png" style="width: 620px; height: 208px;"></p>
+<p>
+  每一个epoll对象都有一个独立的eventpoll结构体，用于存放通过epoll_ctl方法向epoll对象中添加进来的事件。这些事件都会挂载在红黑树中，如此，重复添加的事件就可以通过红黑树而高效的识别出来.</p>
+<p>
+  而所有添加到epoll中的事件都会与设备(网卡)驱动程序建立回调关系，也就是说，当相应的事件发生时会调用这个回调方法。这个回调方法在内核中叫ep_poll_callback,它会将发生的事件epitem添加到rdlist双链表中。</p>
+<p>
+  在epoll中，对于每一个事件，都会建立一个epitem结构体，如下所示：</p>
+<p style="text-align: center;">
+  <img alt="" src="./EPOLL的工作原理及流程_华清远见教育集团_files/2-1P514114J2301.png" style="width: 571px; height: 191px;"></p>
+<p>
+  当调用epoll_wait检查是否有事件发生时，只需要检查eventpoll对象中的rdlist双链表中是否有epitem元素即可。如果rdlist不为空，则把发生的事件复制到用户态，同时将事件数量返回给用户。</p>
+<p style="text-align: center;">
+  <img alt="" src="./EPOLL的工作原理及流程_华清远见教育集团_files/2-1P514114Q25R.png" style="width: 513px; height: 449px;"></p>
+<p>
+ 总结：</p>
+<p>
+  (1)我们我们调用epoll_wait()函数的时候，系统创建一个epoll对象，每个对象都有一个</p>
+<p>
+  叫做eventpoll类型的结构体与之对应，该结构体中主要有两个主要的成员，一个是</p>
+<p>
+  rbn,代表将要通过epoll_ctl向epll对象中添加的事件。这些事情都是挂载在红黑树中。</p>
+<p>
+  一个是rdlist，里面存放的是将要发生的事件</p>
+<p>
+  (2)当我们使用epoll_ctrl()函数的时候，就是向epoll对象中添加，删除，修改感兴趣的事件</p>
+<p>
+  (3) epoll_wait()系统。通过此调用收集在epoll监控中已经发生的事件。当监控的事件状态发生改变的时候，我们会调用会调用函数把epitem加入到rdlist中去。</p>
+<p>
+ 一. Epoll的API函数接口</p>
+<p>
+ 3.1 事件的创建---epoll_create();</p>
+<p>
+  int epoll_create(int size);</p>
+<p>
+  int epoll_create1(int flags);</p>
+<p>
+  功能：poll_create()创建一个epoll的事例，通知内核需要监听size个fd。size指的并不是最大的后备存储设备，而是衡量内核内部结构大小的一个提示。当创建成功后，会占用一个fd，所以记得在使用完之后调用close()，否则fd可能会被耗尽。</p>
+<p>
+ Note:自从Linux2.6.8版本以后，size值其实是没什么用的，不过要大于0，因为内核可以动态的分配大小，所以不需要size这个提示了。</p>
+<p>
+ 其次：epoll_create1()函数，其实它和epoll_create差不多，不同的是epoll_create1函参数flag：</p>
+<p>
+ · 当flag是0时，表示和epoll_create函数完全一样，不需要size的提示了;</p>
+<p>
+ · 当flag = EPOLL_CLOEXEC，创建的epfd会设置FD_CLOEXEC;</p>
+<p>
+ · 当flag = EPOLL_NONBLOCK，创建的epfd会设置为非阻塞。</p>
+<p>
+  一般用法都是使用EPOLL_CLOEXEC。</p>
+<p>
+ Note:关于FD_CLOEXEC，它是fd的一个标识说明，用来设置文件close-on-exec状态的。当close-on-exec状态为0时，调用exec时，fd不会被关闭;状态非零时则会被关闭，这样做可以防止fd泄露给执行exec后的进程。</p>
+<p>
+  返回值：成功返回一个非负的文件描述符。</p>
+<p>
+  例如：</p>
+<p>
+  int epfd = epoll_create(20); //注：20为随机写的一个值，大于0即可。</p>
+<p>
+ 或</p>
+<p>
+  int epfd = epoll_create1(0);</p>
+<p>
+ 3.1 事件的注册---epoll_ctl();</p>
+<p>
+ int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);</p>
+<p>
+  功能：epoll的事件注册函数，epoll的事件注册函数，它不同于select()是在监听事件时告诉内核要监听什么类型的事件，而是在这里先注册要监听的事件类型。</p>
+<p>
+ 参数：</p>
+<p>
+  @epfd epoll_create()函数的返回值</p>
+<p>
+ @op 表示参数的动作，常用以下宏：</p>
+<p>
+ EPOLL_CTL_ADD：注册新的fd到epfd中;</p>
+<p>
+  EPOLL_CTL_MOD：修改已经注册的fd的监听事件;</p>
+<p>
+  EPOLL_CTL_DEL：从epfd中删除一个fd;</p>
+<p>
+  @fd 表示我们需要监听的文件描述符</p>
+<p>
+ @event 表示告诉内核，我们需要监听什么事件。</p>
+<p>
+  结构体如下：</p>
+<p>
+ typedef union epoll_data</p>
+<p>
+ {</p>
+<p>
+  void *ptr;</p>
+<p>
+ int fd; //保存我们使用的sockfd</p>
+<p>
+  uint32_t u32;</p>
+<p>
+  uint64_t u64;</p>
+<p>
+  } epoll_data_t;</p>
+<p>
+  struct epoll_event</p>
+<p>
+ {</p>
+<p>
+  uint32_t events; /* Epoll events */</p>
+<p>
+  epoll_data_t data; /* User data variable */</p>
+<p>
+  };</p>
+<p>
+ events参数是一个枚举的集合，可以用” | “来增加事件类型，枚举如下：</p>
+<p>
+ · EPOLLIN ：表示对应的文件描述符可以读(包括对端SOCKET正常关闭);</p>
+<p>
+ · EPOLLOUT：表示对应的文件描述符可以写;</p>
+<p>
+ · EPOLLPRI：表示对应的文件描述符有紧急的数据可读(这里应该表示有带外数据到来);</p>
+<p>
+ · EPOLLERR：表示对应的文件描述符发生错误;</p>
+<p>
+  · EPOLLHUP：表示对应的文件描述符被挂断;</p>
+<p>
+ · EPOLLET： 将EPOLL设为边缘触发(Edge Triggered)模式，这是相对于水平触发(Level Triggered)来说的;</p>
+<p>
+  · EPOLLONESHOT：只监听一次事件，当监听完这次事件之后，如果还需要继续监听这个socket的话，需要再次把这个socket加入到EPOLL队列里</p>
+<p>
+  返回值：成功返回0，失败返回-1.</p>
+<p>
+  3.2等待事件---epoll_wait();</p>
+<p>
+  int epoll_wait(int epfd, struct epoll_event *events,int maxevents, int timeout);</p>
+<p>
+ 功能：收集在epoll监控的事件中已经发送的事件。</p>
+<p>
+  参数：</p>
+<p>
+  @epfd epoll_create()函数的返回值</p>
+<p>
+ @events 已经分配好的epoll_event结构体数组，epoll会把将发生的事情存放到events中。</p>
+<p>
+  @maxevents 告诉内核events有多大。必须大于0</p>
+<p>
+ @timeout 超时时间 -1 表示epoll将无限制的等待下去</p>
+<p>
+  0 立即返回</p>
+<p>
+ &gt;0 指定超时时间</p>
+<p>
+ 返回值： 成功返回已经就绪的文件描述符个数。若是设置了超时时间，在超时时间内返回0.</p>
+<p>
+ 失败返回-1.</p>
+<p>
+  五.Epoll的工作模式。</p>
+<p>
+  LT(level triggered)是缺省的工作方式，并且同时支</p>
+<p>
+  持block和no-block socket.在这种做法中，。当epoll_wait检测到描述符事件发生并将此事件通知应用程序，应用程序可以不立即处理该事件。下次调用epoll_wait时，会再次响应应用程序并通知此事件。</p>
+<p>
+  ET (edge-triggered)是高速工作方式，常工作在no-block socket。在这种模式下，当epoll_wait检测到描述符事件发生并将此事件通知应用程序，应用程序必须立即处理该事件。如果不处理，下次调用epoll_wait时，不会再次响应应用程序并通知此事件。</p>
+<p>
+ EPOLLIN事件：</p>
+<p>
+ EPOLLIN事件则只有当对端有数据写入时才会触发，所以触发一次后需要不断读取所有数据直到读完EAGAIN为止。否则剩下的数据只有在下次对端有写入时才能一起取出来了。设想这样一个场景：接收端接收完整的数据后会向对端发送应答报文，</p>
+<p>
+ ，对端才会继续向接收端发送数据，从而触发下一次的EPOLLIN，而这时没有读完socket缓冲区中的所有数据，导致接收端无法向对端发送应答报文，而对端没有收到应答报文，也就不会再发送数据触发下一次的EPOLLIN，而没有下一次的EPOLLIN事件，接收端也就永远不知道此socket缓冲区中还有未读出的数据。一个完美的死循环)</p>
+<p>
+  示例代码：</p>
+<p>
+  实现多个客户端和服务端的回射代码。</p>
+<p>
+  Server.c</p>
+<p style="text-align: center;">
+ <img alt="" src="./EPOLL的工作原理及流程_华清远见教育集团_files/2-1P514114T2L1.png" style="width: 500px; height: 548px;"></p>
+<p style="text-align: center;">
+ <img alt="" src="./EPOLL的工作原理及流程_华清远见教育集团_files/2-1P514114934W5.png" style="width: 500px; height: 496px;"></p>
+<p style="text-align: center;">
+  <img alt="" src="./EPOLL的工作原理及流程_华清远见教育集团_files/2-1P51411494GN.png" style="width: 500px; height: 405px;"><br>
+  <img alt="" src="./EPOLL的工作原理及流程_华清远见教育集团_files/2-1P5141150504E.png" style="width: 500px; height: 236px;"><br>
+ <img alt="" src="./EPOLL的工作原理及流程_华清远见教育集团_files/2-1P51411511NA.png" style="width: 500px; height: 131px;"><br>
+  <img alt="" src="./EPOLL的工作原理及流程_华清远见教育集团_files/2-1P514115136447.png" style="width: 500px; height: 252px;"><br>
+  <img alt="" src="./EPOLL的工作原理及流程_华清远见教育集团_files/2-1P514115205606.png" style="width: 500px; height: 270px;"><br>
+  <img alt="" src="./EPOLL的工作原理及流程_华清远见教育集团_files/2-1P51411522M95.png" style="width: 500px; height: 265px;"></p>
+<p>
+  Client.c</p>
+<p style="text-align: center;">
+ <img alt="" src="./EPOLL的工作原理及流程_华清远见教育集团_files/2-1P514115304503.png" style="width: 500px; height: 309px;"><br>
+  <img alt="" src="./EPOLL的工作原理及流程_华清远见教育集团_files/2-1P51411533NP.png" style="width: 500px; height: 442px;"><br>
+  <img alt="" src="./EPOLL的工作原理及流程_华清远见教育集团_files/2-1P514115405C2.png" style="width: 500px; height: 398px;"><br>
+ <img alt="" src="./EPOLL的工作原理及流程_华清远见教育集团_files/2-1P5141154223N.png" style="width: 500px; height: 281px;"><br>
+ <img alt="" src="./EPOLL的工作原理及流程_华清远见教育集团_files/2-1P514115503263.png" style="width: 500px; height: 399px;"></p>
+<p>
+ 运行结果：</p>
+<p style="text-align: center;">
+  <img alt="" src="./EPOLL的工作原理及流程_华清远见教育集团_files/2-1P51411552VZ.png" style="width: 500px; height: 251px;"></p>
+
+							
+								
+							</div>
+							
+							
+						</div>
+						<div class="article_bottom">
+							<p class="fz14 cor03"><a href="http://emb.hqyj.com/Column/20181658.html">上一篇：想学单片机和嵌入式该怎么学 干货力荐</a> </p>
+							<p class="fz14 cor03"><a href="http://emb.hqyj.com/Column/20181661.html">下一篇：Kobject 与 sysfs 文件系统框架的分析</a> </p>
+							
+							
+						</div>
+					</div>
+					<div style="width;850px; height:130px; ">
+			<a href="http://emb.hqyj.com/courses/embai.html" target="_blank"><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/qrs_rgzn2.jpg" width="850" height="130"></a>
+		</div>
+
+					<div class="article_top01">
+						<img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_leftimg01.png" class="img01">
+						
+						<ul>
+		<li><a href="http://emb.hqyj.com/Column/20181522.html" target="_blank"><p>·&nbsp;&nbsp;PID算法的C程序实现方式，大神带你入门</p></a></li>
+<li><a href="http://emb.hqyj.com/Column/20181171.html" target="_blank"><p>·&nbsp;&nbsp;CAN总线入门如此简单</p></a></li>
+<li><a href="http://emb.hqyj.com/Column/10232.html" target="_blank"><p>·&nbsp;&nbsp;linux make命令安装详解</p></a></li>
+<li><a href="http://emb.hqyj.com/Column/7615.html" target="_blank"><p>·&nbsp;&nbsp;飞行控制器Pixhawk简介</p></a></li>
+<li><a href="http://emb.hqyj.com/Column/20181531.html" target="_blank"><p>·&nbsp;&nbsp;DMX512协议及对接口电路的分析</p></a></li>
+
+    </ul>
+					</div>
+				</div>
+				<div class="article_main_right f_right">
+					<div class="article_main_right_top">
+					<!-- Swiper -->
+					 <script type="text/javascript" src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_right.js"></script><div class="article_main_right_top">
+					<!-- Swiper -->
+					  <div class="swiper-container swiper-container-horizontal">
+						<div class="swiper-wrapper" style="transform: translate3d(-360px, 0px, 0px); transition-duration: 0ms;">
+						  <div class="swiper-slide swiper-slide-prev" style="width: 330px; margin-right: 30px;">
+						  	<a href="http://www.hqyj.com/zhuanti/2019shujia.html" target="_blank"><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_03.jpg" width="306" height="280"></a>
+						  </div>
+						  <div class="swiper-slide swiper-slide-active" style="width: 330px; margin-right: 30px;">
+						  	<a href="http://www.hqyj.com/zhuanti/2019byj.html" target="_blank"><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_022.jpg" width="306" height="280"></a>
+						  </div>
+						</div>
+						<!-- Add Pagination -->
+						<div class="swiper-pagination swiper-pagination-clickable swiper-pagination-bullets"><span class="swiper-pagination-bullet" tabindex="0" role="button" aria-label="Go to slide 1"></span><span class="swiper-pagination-bullet swiper-pagination-bullet-active" tabindex="0" role="button" aria-label="Go to slide 2"></span></div>
+					  <span class="swiper-notification" aria-live="assertive" aria-atomic="true"></span></div>
+					</div>
+					
+					<div class="article_main_right_increase">
+						<div class="amri_title">
+							<em></em>
+							<p>华清图书馆</p>
+							<span>0元电子书，限时免费申领</span>
+						</div>
+						<div class="amri_main">
+							<p>10本华清图书<span>PDF版</span></p>
+							<em>扫码关注华清远见公众号<br><span style="color:#ff6960">自动回复“2”，</span>即可申领！</em>
+							<img src="./EPOLL的工作原理及流程_华清远见教育集团_files/erweim.jpg">
+						</div>
+					</div>
+ 
+					</div>
+					<!--<div class="article_main_right_01"><a href="http://www.hqyj.com/jiuye/fengyunbang.html" target="_blank"><p class="fz16 cor06 fw">戳我查看2018年嵌入式每月就业风云榜</p></a></div>
+					<div class="article_main_right_02"><a href="http://www.hqyj.com/jiuye/gaoxin.html" target="_blank"><p class="fz16 cor06 fw">点我了解华清远见高校学霸学习秘籍</p></a></div>
+					<div class="article_main_right_03"><a href="http://www.hqyj.com/jiuye/qypj.html" target="_blank"><p class="fz16 cor06 fw">猜你关心企业是如何评价华清学员的</p></a></div>-->
+					
+					<div class="article_main_right_bottom" style="margin-top:220px;">
+						<div class="amrb_title">
+							<em></em>
+							<span class=" fz16 cor06 fw f_left">热点文章推荐</span>
+							<!--<a href="" target="_blank" class="fz14 cor03">更多</a>-->
+							<div class="clear"></div>
+						</div>
+												<ul class="amrb_body">
+						
+							<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://emb.hqyj.com/Column/20197965.html" target="_blank" class="fz14 cor02">软件工程就业前景</a></li>
+<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://emb.hqyj.com/Column/20197689.html" target="_blank" class="fz14 cor02">Ubuntu关机、重启和注销命令</a></li>
+<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://emb.hqyj.com/Column/20197673.html" target="_blank" class="fz14 cor02">C语言指针：多级指针</a></li>
+<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://emb.hqyj.com/Column/20187593.html" target="_blank" class="fz14 cor02">Linux重启命令介绍</a></li>
+<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://emb.hqyj.com/Column/20187592.html" target="_blank" class="fz14 cor02">2019年嵌入式行业有哪些就业形势</a></li>
+<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://emb.hqyj.com/Column/20187582.html" target="_blank" class="fz14 cor02">ARM工程师是做什么的？需要掌握什么技能？</a></li>
+
+						</ul>
+					</div>
+					
+					<div class="article_main_right_bottom">
+						<div class="amrb_title">
+							<em></em>
+							<span class=" fz16 cor06 fw f_left">华清学员就业榜单</span>
+							<!--<a href="" target="_blank" class="fz14 cor03">更多</a>-->
+							<div class="clear"></div>
+						</div>
+												<ul class="amrb_body">
+						
+							<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://www.hqyj.com/jiuye/fengyunbang8507.html" target="_blank" class="fz14 cor02">八月高薪榜火热出炉，本科就业薪资直达15000元</a></li>
+<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://www.hqyj.com/jiuye/fengyunbang8357.html" target="_blank" class="fz14 cor02">七月高薪火爆出炉，来华清远见，让逃避式考研成为往事</a></li>
+<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://www.hqyj.com/jiuye/fengyunbang8207.html" target="_blank" class="fz14 cor02">一线城市均薪10082元，6月薪资榜教你填报高考志愿！</a></li>
+<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://www.hqyj.com/jiuye/fengyunbang8141.html" target="_blank" class="fz14 cor02">5月风云榜新鲜出炉！全国均薪达11317元，让理想成为现</a></li>
+<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://www.hqyj.com/jiuye/fengyunbang8028.html" target="_blank" class="fz14 cor02">无限手套纯属虚构，高薪还要看华清4月就业榜单</a></li>
+<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://www.hqyj.com/jiuye/fengyunbang7887.html" target="_blank" class="fz14 cor02">正是一夜春风来，华清学员高薪开，本科毕业月薪高达16</a></li>
+
+						</ul>
+					</div>
+					
+					<div class="article_main_right_bottom">
+						<div class="amrb_title">
+							<em></em>
+							<span class=" fz16 cor06 fw f_left">高薪学员经验分享</span>
+							<!--<a href="" target="_blank" class="fz14 cor03">更多</a>-->
+							<div class="clear"></div>
+						</div>
+												<ul class="amrb_body">
+						
+							
+							<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://www.hqyj.com/jiuye/gaoxin5383.html" target="_blank" class="fz14 cor02">年薪20W的小哥哥来啦 他有这些经验都想说给你听</a></li>
+							
+							<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://www.hqyj.com/jiuye/gaoxin6043.html" target="_blank" class="fz14 cor02">在南京半年多从13K涨到16K 居然跟美女老师有关</a></li>
+							
+							<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://www.hqyj.com/jiuye/gaoxin6634.html" target="_blank" class="fz14 cor02">听！前方有一名月薪15W的小哥哥来讲述高薪历程了！</a></li>
+							
+							<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://www.hqyj.com/jiuye/gaoxin6644.html" target="_blank" class="fz14 cor02">父亲叮嘱我：再不辜负青春了！</a></li>
+							
+							<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://www.hqyj.com/jiuye/gaoxin6636.html" target="_blank" class="fz14 cor02">19届毕业生提前找到工作！还是月薪15W的那种，老牛了！</a></li>
+							
+							<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://www.hqyj.com/jiuye/gaoxin6631.html" target="_blank" class="fz14 cor02">军人转行来学嵌入式，与华清结下不解之缘</a></li>
+							
+							
+						</ul>
+					</div>
+					
+					<div class="article_main_right_bottom">
+						<div class="amrb_title">
+							<em></em>
+							<span class=" fz16 cor06 fw f_left">热点新闻推荐</span>
+							<!--<a href="" target="_blank" class="fz14 cor03">更多</a>-->
+							<div class="clear"></div>
+						</div>
+												<ul class="amrb_body">
+						
+							<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://www.hqyj.com/news/7638.html" target="_blank" class="fz14 cor02">温暖同行共创佳绩 2019华清远见北京总部年会大曝光</a></li>
+<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://www.hqyj.com/news/7612.html" target="_blank" class="fz14 cor02">助力高校AI人工智能学科建设 华清远见人工智能师资班</a></li>
+<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://www.hqyj.com/news/7595.html" target="_blank" class="fz14 cor02">华清远见受邀参加四川省物联网年会，荣获优秀企业专家</a></li>
+<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://www.hqyj.com/news/7591.html" target="_blank" class="fz14 cor02">了解华清硬实力 2018年度盘点之研发中心篇</a></li>
+<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://www.hqyj.com/news/2262.html" target="_blank" class="fz14 cor02">华清首届智能车大赛 一场堪比世界杯级别的比赛</a></li>
+<li><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/article_main_rightdian.png"><a href="http://www.hqyj.com/news/1937.html" target="_blank" class="fz14 cor02">【热烈庆祝】华清远见2018嵌入式课程再次革命性升级</a></li>
+
+						</ul>
+					</div>
+				</div>
+				<div class="clear"></div>
+			</div>
+		</div>
+	</div>
+	<!--footer-->
+<!--foot-->
+<div class="online_last">
+ <div class="div_center">
+  <div class="online_lo">
+    <!--<div class="online_go">
+	 
+    </div>-->
+	<div class="online_go_public">
+		<div class="online_nose">
+		   <span>前台专线：010-82525158</span>
+		   <span>企业培训洽谈专线：010-82525379</span>
+		   <span>院校合作洽谈专线：010-82525379</span>
+		   <span>Copyright &#169; 2004-2018 北京华清远见科技发展有限公司 版权所有 ，京ICP备16055225号，京公海网安备11010802025203号</span>
+		   <span align="center" class="cnzz">
+					<script src="./EPOLL的工作原理及流程_华清远见教育集团_files/z_stat.php" language="JavaScript"></script><script src="./EPOLL的工作原理及流程_华清远见教育集团_files/core.php" charset="utf-8" type="text/javascript"></script><a href="https://www.cnzz.com/stat/website.php?web_id=1994864" target="_blank" title="站长统计">站长统计</a>
+					
+					<!--baidu统计代码 开始-->
+					<script>
+						var _hmt = _hmt || [];
+						(function() {
+						  var hm = document.createElement("script");
+						  hm.src = "https://hm.baidu.com/hm.js?7ac3288d28d2aa2446e710071741ce8f";
+					  var s = document.getElementsByTagName("script")[0]; 
+					  s.parentNode.insertBefore(hm, s);
+					})();
+				</script>
+				<!--baidu统计代码 结束-->
+	
+	  </span>
+	  <div style="clear:both"></div>
+	 </div>
+	</div>
+	
+    <div class="header_right_public">
+		<ul>
+        <a href="http://emb.hqyj.com/Column/20181660.html"><li class="lweixin"><span>微信</span>
+		<div class="laiweixin"><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/erwm.png" width="100" height="100"></div>
+		</li></a>
+		<a href="http://wpa.qq.com/msgrd?v=3&amp;uin=619366077&amp;site=%BB%AA%C7%E5%D4%B6%BC%FB%B9%D9%B7%BDQQ&amp;menu=yes" target="_blank" rel="nofollow"><li class="lqq">
+		
+		<span>QQ咨询</span>
+		</li></a>
+        <a><li class="phone">
+			<span>客服电话</span>
+			<div class="laiphone">400-611-6270</div>
+        </li></a>
+		<a href="http://emb.hqyj.com/sitemap.html" target="_blank">
+			<li class="nav_wang"><span>网站导航</span></li>
+		</a>
+		<div class="clear"></div>
+      </ul>
+    </div>
+	
+	<div class="clear"></div>
+   </div>
+  
+</div>
+<script>
+$(function(){
+				$('.k_sev li').hover(function(){
+					$('.k_tit',this).fadeIn();
+				},function(){
+					$('.k_tit',this).fadeOut();
+				});
+			});
+	
+</script>
+<!-- /footer -->
+</div>
+<!--返回顶部-->
+<div class="page_top">
+    <div class="page_top01">
+        <a href="javascript:" class="page_top02" style="display: block;">
+            <span></span>
+            <p></p>
+        </a>
+        <div class="page_top03">
+            <p>回到顶部</p>
+        </div>
+    </div>
+</div>
+<!--广告位置-->
+<div class="close_bottom" style="right: 0px;">
+	<div class="div_center">
+		<a href="javascript:" class="close"><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/close.png"></a>
+	</div>
+</div>
+<style>
+.css3btn{ width:300px;height:131px; bottom:327px;  right:4px;  z-index:9999999999;  position:fixed;background:url(http://www.hqyj.com/Ver201811/images/1_03.gif) no-repeat;  }  
+.css3btn a{  display:block;  text-decoration:none;  }  
+.css3btnclose{ position:absolute;right:10px;top:8px; cursor:pointer; font-weight:bold;}
+ 
+.css4btn{  bottom:260px;  right:4px;  z-index:9999999999;  position:fixed;  }  
+.css4btn a{  display:block;  text-decoration:none;  }  
+
+</style>
+<!--[if IE 8]><style>.css3btn p.bubble:after{display:none;}</style><![endif]-->
+<div class="css3btn">
+	<a href="javascript:;" id="suoqu" style="width:133px;height:30px;margin-top:60px;margin-left:144px;"></a>
+	<div class="css3btnclose">X</div>
+</div>
+<div class="css4btn">
+	<a href="http://tb.53kf.com/code/client/9007611/4" target="_blank"><img src="./EPOLL的工作原理及流程_华清远见教育集团_files/2_03.png">
+	
+	</a>
+</div>
+<div id="suoqu02" style="display:none">
+	<div class="biaodan">
+    	<div class="infor">
+        	<p class="infor_mation">请准确填写如下信息，方便我们及时给您发送资料。</p>
+            <div class="infor_table">
+			<form id="form1" action="http://www.hqyj.com/plus/diy.php" enctype="multipart/form-data" onsubmit="return VerifyInput();" name="form1" method="post">
+		<input type="hidden" name="action" value="post">
+		<input type="hidden" name="diyid" value="44">
+		<input type="hidden" name="do" value="2">
+
+                    	<div>
+                            <p>姓名：</p>
+                            <input size="15" maxlength="11" class="info_input" name="name" type="text" id="name" onmouseover="form1.name.focus()" placeholder="请在此输入您姓名">
+                         </div>
+                    	<div>
+                            <p>手机：</p>
+                            <input size="15" maxlength="11" class="info_input" name="ophone" type="text" id="ophone" onmouseover="form1.ophone.focus()" placeholder="请在此输入您的手机">
+                         </div>
+                         
+                        <div>
+                            <p>Email：</p>
+                            <input size="15" maxlength="100" class="info_input" name="email" type="text" id="email" onmouseover="form1.email.focus()" placeholder="请在此输入您的常用邮箱">
+                         </div>
+                        
+						 <input type="hidden" name="dede_fields" value="name,text;ophone,text;email,text">
+				<input type="hidden" name="dede_fieldshash" value="7828152e55fda8a686a0e2dda141f6fb">
+                         <div class="infor_sum">
+                         	<input name="submit" type="submit" id="submit" class="z_btn" value="点击提交">
+
+                         </div>
+						 </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+  <script language="JavaScript">
+function VerifyInput()
+{
+	name=document.form1.name.value
+	if (name == "")
+	{
+		alert("请输入您的姓名");
+		document.form1.name.focus();
+		return false;
+	}
+	
+	ophone=document.form1.ophone.value
+	if (ophone == ""|| ophone.length != 11)
+	{
+		alert("请输入您的联系电话或输入错误");
+		document.form1.ophone.focus();
+		return false;
+	}
+
+	var email = document.form1.email.value;
+	if(email.indexOf('@',0) == -1 || email.indexOf('.',0) == -1){
+		alert("您输入的Email有错误\n请重新检查您的Email");
+		document.form1.email.focus();
+		return false;
+	}
+	
+	if (document.form1.email.value == "")
+	{
+		alert("请输入您的EMAIL地址");
+		document.form1.email.focus();
+		return false;
+	}
+
+	course=document.form1.course.value
+	if (course == "")
+	{
+		alert("请选择参加课程");
+		document.form1.course.focus();
+		return false;
+	}
+	
+	department=document.form1.department.value
+	if (department == "")
+	{
+		alert("请选择培训方式");
+		document.form1.department.focus();
+		return false;
+	}
+	
+	infoSource=document.form1.infoSource.value
+	if (infoSource == "")
+	{
+		alert("请输入信息来源");
+		document.form1.infoSource.focus();
+		return false;
+	}
+	return true;
+}
+</script>
+
+
+<script>
+$('#suoqu').on('click', function(){
+    layer.open({
+    type: 1,
+    title: false,
+    closeBtn: true,
+	area: ['555px'],
+    shadeClose: true,
+    skin: 'layui-layer-nobg', 
+    content: $('#suoqu02')
+});
+});
+</script>
+<script>
+$(function (){
+$('.css3btn').animate();
+$('.css3btnclose').click(function(){
+   $('.css3btn').hide();
+});
+});
+</script>
+<link rel="stylesheet" type="text/css" href="./EPOLL的工作原理及流程_华清远见教育集团_files/information.css">
+<script type="text/javascript" src="./EPOLL的工作原理及流程_华清远见教育集团_files/layer.js"></script>
+<script>
+$(function (){
+$('.close_bottom').animate({right:'0px'},1000);
+$('.close').click(function(){
+   $('.close_bottom').hide();
+});
+});
+</script>
+<script>
+$(function(){
+	$(window).scroll(function(){
+		var _top = $(window).scrollTop();
+		if(_top>300){
+			$('.page_top02').fadeIn(600);
+		}else{
+			$('.page_top02').fadeOut(600);
+		}
+	});
+	$(".page_top02").click(function(){
+		$("html,body").animate({scrollTop:0},500);
+	});
+});
+</script>
+<!--微信-->
+<script>
+$('.lweixin').hover(function(){
+	$('.laiweixin',this).fadeIn();
+},function(){
+	$('.laiweixin',this).fadeOut();
+});
+$('.phone').hover(function(){
+	$('.laiphone').fadeIn();
+},function(){
+	$('.laiphone').fadeOut();
+});
+
+</script> 
+	<!-- Swiper JS -->
+  <script src="./EPOLL的工作原理及流程_华清远见教育集团_files/swiper.min.js"></script>
+  <!-- Initialize Swiper -->
+  <script>
+	var swiper = new Swiper('.swiper-container', {
+	  spaceBetween: 30,
+	  centeredSlides: true,
+	  autoplay: {
+		delay: 2500,
+		disableOnInteraction: false,
+	  },
+	  pagination: {
+		el: '.swiper-pagination',
+		clickable: true,
+	  },
+	  navigation: {
+		nextEl: '.swiper-button-next',
+		prevEl: '.swiper-button-prev',
+	  },
+	});
+  </script>
+
+
+</body></html>
