@@ -55,3 +55,81 @@ co = d.copy()   浅拷贝，book的value为内存地址
 
 
 9. 函数中传参是列表时，传的是引用，如果不想被修改，就传copy.deepcopy(list)
+
+
+10.
+xx   　　　:公有变量
+_xx　　　　:私有化属性或方法，禁止导入，类对象和子类可以访问
+__xx       :避免与子类中的属性命名冲突，无法外部直接访问（名字重整）
+__xx__     :魔法对象或方法，不用自己发明
+xx_        :避免与Python关键字冲突
+
+
+
+11.导入模块
+from xxx import yyy
+import xxx 
+from xxx import *
+import xxx, zzz
+from xxx import yyy, mmm
+import xxx as XXX
+
+import aa　：１．加载aa模块，２．定义一个变量aa，并指向这个模块
+
+导入自定义模块时，sys.path列表中有当前路径一项，
+导入模块后，加载到内存；此时修改该模块源码，已经导入的模块不变．不会重复导入
+from imp import reload 
+reload(aa)                :可以重新导入aa模块
+
+help(reload)   :查看手册
+
+
+
+
+12.
+import sys
+sys.path :返回一个列表，导入模块时的搜索路径
+sys.path.append('xxxxx'):添加模块
+
+
+
+
+13.多模块开发注意：一个程序可以是多个模块组成
+
+yyy = True             a.py
+from xxx import yyy    b.py
+form xxx import yyy    c.py
+在c.py的函数中修改yyy,只能修改局部变量；加上globle.yyy 也只是c.py中个全局变量; a.py, b.py中　不受影响
+
+yyy = True          a.py
+import a            b.py
+import a            c.py
+使用在b.py 和c.py 中都可以通过a.yyy = False 可以修改
+
+
+yyy = [11, 22] 　　可修改的变量都可以直接修改，传递的只是引用
+
+
+
+14.
+python中有继承，多继承，多态（子类重写父类方法）
+python中没有重载（一个类中多个函数，函数名相同，根据参数类型，个数进行区别），有重写覆盖（函数名相同，函数名就是个变量）
+python是动态语言，类型不是提前定义，但是传参不同结果类型可能不同，例如１＋１＝２；＂１＂＋＂１＂＝＂１１＂
+
+
+15.上下文管理器
+任何实现了__enter__方法，和__exit__方法
+　()里面的传给__enter__，返回值作为as后面的f,
+出现错误执行__exit__方法　
+with open("1.txt", "rb") as f
+    c = f.read()
+
+with  as
+open可以，自己写的含有enter,exit的也可以，使用contestmanager也可以使用
+
+
+
+
+
+
+
